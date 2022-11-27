@@ -37,7 +37,7 @@ grf.model <- grf(D_phealth ~ s1_minorit+s2_elderly+s3_rental+s4_lowses+s5_inde+s
            dframe=StudyArea.df, 
            bw=164,             # a positive number for "adaptive kernel".
            ntree= 500, 
-           mtry = 6,           # mtry n = 1/3 of independence variables, here we have 18 independence variables.
+           mtry = 6,           # mtry n = 1/3 of independent variables, here we have 18 independent variables.
            kernel="adaptive",  # adaptive kernel employed to this model.
            forests = TRUE,     # Export all the local forests
            coords=Coords)      # a numeric matrix or data frame of two columns giving the X,Y coordinates of the observations
