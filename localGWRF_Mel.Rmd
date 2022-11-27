@@ -1,0 +1,179 @@
+---
+title: "Local GWRF"
+author: "CAI Wenhui"
+date: "2022-10-07"
+output: html_document
+---
+
+```{r}
+library(GWmodel)      ## GW models
+library(plyr)         ## Data management
+library(rgdal)        ## Read Shapefile
+library(readxl)       ## Read excel
+library(sp)           ## Spatial Data management
+library(spdep)        ## Spatial autocorrelation
+library(RColorBrewer) ## Visualization
+library(classInt)     ## Class intervals
+library(raster)       ## spatial data
+library(grid)         ## plot
+library(gridExtra)    ## Multiple plot
+library(ggplot2)      #  plotting
+library(tidyverse)    # data 
+library(SpatialML)    # Geographically weigted regression
+```
+
+```{r}
+# Define data and set data format as dataframe
+StudyArea<-st_read(".\\pca_shp\\pca_mel.shp")
+StudyArea.df <- as.data.frame(StudyArea)
+```
+
+For local Random Forest Model using D_phealth as dependence variable:
+
+```{r}
+data(StudyArea.df)
+Coords<-StudyArea.df[ ,15:16]
+grf.model <- grf(D_phealth ~ s1_minorit+s2_elderly+s3_rental+s4_lowses+s5_inde+s6_female+s7_retire+be1_compac+be2_distof+be3_crowdh+be4_street+be5_green+be6_conven+be7_mobile+be8_hacces+air1_o3co+air2_no2ao+temperatur, 
+           dframe=StudyArea.df, 
+           bw=164,             # a positive number for "adaptive kernel".
+           ntree= 500, 
+           mtry = 6,           # mtry n = 1/3 of independence variables, here we have 18 independence variables.
+           kernel="adaptive",  # adaptive kernel employed to this model.
+           forests = TRUE,     # Export all the local forests
+           coords=Coords)      # a numeric matrix or data frame of two columns giving the X,Y coordinates of the observations
+```
+
+```{r}
+# Take a quick look of global importance of variables
+grf.model$Global.Model$variable.importance 
+```
+
+```{r}
+#join local importance to spatial data
+StudyArea$importance.s1_minorit=grf.model$Local.Variable.Importance$s1_minorit
+StudyArea$importance.s2_elderly=grf.model$Local.Variable.Importance$s2_elderly
+StudyArea$importance.s3_rental=grf.model$Local.Variable.Importance$s3_rental
+StudyArea$importance.s4_lowses=grf.model$Local.Variable.Importance$s4_lowses
+StudyArea$importance.s5_inde=grf.model$Local.Variable.Importance$s5_inde
+StudyArea$importance.s6_female=grf.model$Local.Variable.Importance$s6_female
+StudyArea$importance.s7_retire=grf.model$Local.Variable.Importance$s7_retire
+StudyArea$importance.be1_compac=grf.model$Local.Variable.Importance$be1_compac
+StudyArea$importance.be2_distof=grf.model$Local.Variable.Importance$be2_distof
+StudyArea$importance.be3_crowdh=grf.model$Local.Variable.Importance$be3_crowdh
+StudyArea$importance.be4_street=grf.model$Local.Variable.Importance$be4_street
+StudyArea$importance.be5_green=grf.model$Local.Variable.Importance$be5_green
+StudyArea$importance.be6_conven=grf.model$Local.Variable.Importance$be6_conven
+StudyArea$importance.be7_mobile=grf.model$Local.Variable.Importance$be7_mobile
+StudyArea$importance.be8_hacces=grf.model$Local.Variable.Importance$be8_hacces
+StudyArea$importance.air1_o3co=grf.model$Local.Variable.Importance$air1_o3co
+StudyArea$importance.air2_no2ao=grf.model$Local.Variable.Importance$air2_no2ao
+StudyArea$importance.temperatur=grf.model$Local.Variable.Importance$temperatur
+```
+
+```{r}
+#Join local R2 to spatial data
+StudyArea$loc_R2<- grf.model$LGofFit$LM_Rsq100
+```
+
+```{r}
+# transfer spatial data format as spatial for further plotting
+StudyArea <- as(StudyArea, "Spatial")
+class(StudyArea)
+```
+
+```{r}
+# mapping local R2
+jpeg(".\\Melbourne\\D_phealth\\localR2.jpeg")
+myPaletteRes <- colorRampPalette(c("lightseagreen","lightsteelblue1", "moccasin","hotpink", "red"))
+spplot(StudyArea,"loc_R2", main = "Local R2 (%)", 
+       col="transparent",
+       col.regions=myPaletteRes(100))
+dev.off()
+```
+
+```{r}
+#Generating a new color scheme
+col.palette.t<-colorRampPalette(c("red", "pink","yellow", "green","sky blue",  "blue"),space="rgb",interpolate = "linear")
+```
+
+```{r}
+# mapping local importance of each variable
+jpeg(".\\Melbourne\\D_mentalpr\\importance.s1_minorit.jpeg")
+spplot(StudyArea2,"importance.s1_minorit", 
+                   main = list("s1_minorit"), 
+                   col="transparent",
+                   col.regions=rev(col.palette.t(100)))
+dev.off()
+```
+
+For local Random Forest Model using D_mentalpr as dependence variable:
+
+```{r}
+StudyArea2<-st_read(".\\pca_shp\\pca_mel.shp")
+StudyArea2.df <- as.data.frame(StudyArea2)
+```
+
+```{r}
+data(StudyArea2.df)
+Coords<-StudyArea2.df[ ,15:16]
+grf.model2 <- grf(D_mentalpr ~ s1_minorit+s2_elderly+s3_rental+s4_lowses+s5_inde+s6_female+s7_retire+be1_compac+be2_distof+be3_crowdh+be4_street+be5_green+be6_conven+be7_mobile+be8_hacces+air1_o3co+air2_no2ao+temperatur, 
+           dframe=StudyArea2.df, 
+           bw=164,             
+           ntree=   500, 
+           mtry = 6,           
+           kernel="adaptive",  
+           forests = TRUE,     
+           coords=Coords)      
+```
+
+```{r}
+grf.model2$Global.Model$variable.importance 
+```
+
+```{r}
+StudyArea2$importance.s1_minorit=grf.model2$Local.Variable.Importance$s1_minorit
+StudyArea2$importance.s2_elderly=grf.model2$Local.Variable.Importance$s2_elderly
+StudyArea2$importance.s3_rental=grf.model2$Local.Variable.Importance$s3_rental
+StudyArea2$importance.s4_lowses=grf.model2$Local.Variable.Importance$s4_lowses
+StudyArea2$importance.s5_inde=grf.model2$Local.Variable.Importance$s5_inde
+StudyArea2$importance.s6_female=grf.model2$Local.Variable.Importance$s6_female
+StudyArea2$importance.s7_retire=grf.model2$Local.Variable.Importance$s7_retire
+StudyArea2$importance.be1_compac=grf.model2$Local.Variable.Importance$be1_compac
+StudyArea2$importance.be2_distof=grf.model2$Local.Variable.Importance$be2_distof
+StudyArea2$importance.be3_crowdh=grf.model2$Local.Variable.Importance$be3_crowdh
+StudyArea2$importance.be4_street=grf.model2$Local.Variable.Importance$be4_street
+StudyArea2$importance.be5_green=grf.model2$Local.Variable.Importance$be5_green
+StudyArea2$importance.be6_conven=grf.model2$Local.Variable.Importance$be6_conven
+StudyArea2$importance.be7_mobile=grf.model2$Local.Variable.Importance$be7_mobile
+StudyArea2$importance.be8_hacces=grf.model2$Local.Variable.Importance$be8_hacces
+StudyArea2$importance.air1_o3co=grf.model2$Local.Variable.Importance$air1_o3co
+StudyArea2$importance.air2_no2ao=grf.model2$Local.Variable.Importance$air2_no2ao
+StudyArea2$importance.temperatur=grf.model2$Local.Variable.Importance$temperatur
+```
+
+```{r}
+StudyArea2 <- as(StudyArea2, "Spatial")
+class(StudyArea2)
+```
+
+```{r}
+StudyArea2$loc_R2<- grf.model2$LGofFit$LM_Rsq100
+```
+
+```{r}
+jpeg(".\\Melbourne\\D_mentalpr\\localR2.jpeg")
+myPaletteRes <- colorRampPalette(c("lightseagreen","lightsteelblue1", "moccasin","hotpink", "red"))
+spplot(StudyArea2,"loc_R2", main = "Local R2 (%)", 
+       col="transparent",
+       col.regions=myPaletteRes(100))
+dev.off()
+```
+
+```{r}
+jpeg(".\\Melbourne\\D_mentalpr\\importance.s1_minorit.jpeg")
+spplot(StudyArea2,"importance.s1_minorit", 
+                   main = list("s1_minorit"), 
+                   col="transparent",
+                   col.regions=rev(col.palette.t(100)))
+dev.off()
+```
